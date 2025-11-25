@@ -1,0 +1,52 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - echo "Installing dependencies..."
+      - curl -fsSL https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip -o terraform.zip
+      - unzip terraform.zip
+      - mv terraform /usr/local/bin/
+      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.27.4/2023-08-16/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
+      - mv ./kubectl /usr/local/bin/kubectl
+      - terraform --version
+      - kubectl version --client
+
+  pre_build:
+    commands:
+      - echo "Loading infra outputs..."
+      - aws s3 cp s3://${ARTIFACT_BUCKET}/${ENVIRONMENT}/infrastructure/terraform_outputs.json terraform_outputs.json
+      - export VPC_ID=$(cat terraform_outputs.json | jq -r '.vpc_id.value')
+      - cd environments/$ENVIRONMENT
+      - echo "Running terraform init..."
+      - terraform init
+
+  build:
+    commands:
+      - echo "Running terraform plan..."
+      - terraform plan -out=tfplan -var-file=terraform.tfvars -target=module.eks
+      - echo "Running terraform apply..."
+      - terraform apply -auto-approve tfplan
+      - echo "Configuring kubectl..."
+      - aws eks update-kubeconfig --name $(terraform output -raw eks_cluster_name) --region $AWS_REGION
+
+  post_build:
+    commands:
+      - echo "EKS Deployment complete!"
+      - echo "Saving outputs..."
+      - terraform output -json > eks_outputs.json
+      - aws s3 cp eks_outputs.json s3://${ARTIFACT_BUCKET}/${ENVIRONMENT}/eks/eks_outputs.json
+
+artifacts:
+  files:
+    - environments/$ENVIRONMENT/eks_outputs.json
+    - appspec.yml
+  discard-paths: no
+  base-directory: .
+
+cache:
+  paths:
+    - environments/$ENVIRONMENT/.terraform/**/*

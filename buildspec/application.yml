@@ -1,0 +1,64 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+      nodejs: 16
+    commands:
+      - echo "Installing dependencies..."
+      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.27.4/2023-08-16/bin/linux/amd64/kubectl
+      - chmod +x ./kubectl
+      - mv ./kubectl /usr/local/bin/kubectl
+      - kubectl version --client
+
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY_NAME
+      - echo "Loading EKS configuration..."
+      - aws s3 cp s3://${ARTIFACT_BUCKET}/${ENVIRONMENT}/eks/eks_outputs.json eks_outputs.json
+      - export EKS_CLUSTER_NAME=$(cat eks_outputs.json | jq -r '.eks_cluster_name.value')
+
+  build:
+    commands:
+      - echo "Building the Docker image..."
+      - cd app
+      - docker build -t $REPOSITORY_URI:$IMAGE_TAG .
+      - docker tag $REPOSITORY_URI:$IMAGE_TAG $REPOSITORY_URI:latest
+      - echo "Pushing the Docker image..."
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - docker push $REPOSITORY_URI:latest
+      - echo "Preparing Kubernetes manifests..."
+      - cd kubernetes
+      - sed -i "s|\${ECR_REPOSITORY_URI}|$REPOSITORY_URI|g" deployment.yaml
+      - sed -i "s|\${IMAGE_TAG}|$IMAGE_TAG|g" deployment.yaml
+      - sed -i "s|\${ENVIRONMENT}|$ENVIRONMENT|g" deployment.yaml
+
+  post_build:
+    commands:
+      - echo "Configuring kubectl..."
+      - aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+      - echo "Deploying application to EKS cluster..."
+      - cd app/kubernetes
+      - kubectl apply -f deployment.yaml
+      - echo "Waiting for deployment to complete..."
+      - kubectl rollout status deployment/sample-app
+      - echo "Application deployment complete!"
+      - echo "{\"imageTag\":\"$IMAGE_TAG\",\"repository\":\"$REPOSITORY_URI\",\"commitId\":\"$CODEBUILD_RESOLVED_SOURCE_VERSION\"}" > build_outputs.json
+      - aws s3 cp build_outputs.json s3://${ARTIFACT_BUCKET}/${ENVIRONMENT}/app/build_outputs.json
+
+artifacts:
+  files:
+    - app/kubernetes/deployment.yaml
+    - build_outputs.json
+    - appspec.yml
+  discard-paths: no
+  base-directory: .
+
+cache:
+  paths:
+    - /root/.npm/**/*

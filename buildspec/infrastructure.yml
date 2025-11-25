@@ -1,0 +1,47 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - echo "Installing Terraform..."
+      - curl -fsSL https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip -o terraform.zip
+      - unzip terraform.zip
+      - mv terraform /usr/local/bin/
+      - terraform --version
+
+  pre_build:
+    commands:
+      - echo "Configuring AWS credentials..."
+      - aws configure set region $AWS_REGION
+      - cd environments/$ENVIRONMENT
+      - echo "Running terraform init..."
+      - terraform init
+      - echo "Running terraform validate..."
+      - terraform validate
+
+  build:
+    commands:
+      - echo "Running terraform plan..."
+      - terraform plan -out=tfplan -var-file=terraform.tfvars
+      - echo "Running terraform apply..."
+      - terraform apply -auto-approve tfplan
+
+  post_build:
+    commands:
+      - echo "Infrastructure deployment complete!"
+      - terraform output -json > terraform_outputs.json
+      - aws s3 cp terraform_outputs.json s3://${ARTIFACT_BUCKET}/${ENVIRONMENT}/infrastructure/terraform_outputs.json
+
+artifacts:
+  files:
+    - environments/$ENVIRONMENT/terraform_outputs.json
+    - environments/$ENVIRONMENT/.terraform.lock.hcl
+    - appspec.yml
+  discard-paths: no
+  base-directory: .
+
+cache:
+  paths:
+    - environments/$ENVIRONMENT/.terraform/**/*
