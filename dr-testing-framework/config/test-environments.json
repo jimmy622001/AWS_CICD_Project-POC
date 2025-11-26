@@ -1,0 +1,46 @@
+{
+  "environments": {
+    "primary": {
+      "name": "Production",
+      "region": "us-west-2",
+      "vpc_cidr": "10.0.0.0/16",
+      "subnets": [
+        "10.0.1.0/24",
+        "10.0.2.0/24"
+      ],
+      "instances": [
+        {
+          "type": "web",
+          "count": 2,
+          "size": "t3.medium"
+        },
+        {
+          "type": "db",
+          "count": 1,
+          "size": "m5.large"
+        }
+      ]
+    },
+    "dr": {
+      "name": "DR Environment",
+      "region": "us-east-1",
+      "vpc_cidr": "10.1.0.0/16",
+      "subnets": [
+        "10.1.1.0/24",
+        "10.1.2.0/24"
+      ],
+      "instances": [
+        {
+          "type": "web",
+          "count": 2,
+          "size": "t3.medium"
+        },
+        {
+          "type": "db",
+          "count": 1,
+          "size": "m5.large"
+        }
+      ]
+    }
+  }
+}

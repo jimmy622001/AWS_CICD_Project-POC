@@ -1,3 +1,14 @@
+# Required providers for this module
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+      configuration_aliases = [ aws.primary, aws.dr ]
+    }
+  }
+}
+
 variable "project_name" {
   description = "Name of the project being tested"
   type        = string
@@ -19,6 +30,35 @@ variable "dr_region" {
   type        = string
 }
 
+variable "test_timeout_minutes" {
+  description = "Timeout for DR tests in minutes"
+  type        = number
+  default     = 30
+}
+
+variable "rto_threshold_minutes" {
+  description = "Recovery Time Objective threshold in minutes"
+  type        = number
+  default     = 15
+}
+
+variable "rpo_threshold_minutes" {
+  description = "Recovery Point Objective threshold in minutes"
+  type        = number
+  default     = 60
+}
+
+variable "notification_email" {
+  description = "Email address for test notifications"
+  type        = string
+}
+
+variable "fis_experiments" {
+  description = "List of AWS FIS experiments to run"
+  type        = list(string)
+  default     = []  
+}
+
 # Lambda function for validation checks
 resource "aws_lambda_function" "validation" {
   function_name = "${var.project_name}-dr-validation"
@@ -38,6 +78,27 @@ resource "aws_lambda_function" "validation" {
   }
 
   # The Lambda code would be defined here
+  # Placeholder for actual Lambda code
+  filename         = "${path.module}/lambda/function.zip"
+  source_code_hash = filebase64sha256("${path.module}/lambda/function.zip")
+}
+
+# IAM role for the Lambda function
+resource "aws_iam_role" "validation_lambda_role" {
+  name = "${var.project_name}-validation-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      },
+    ]
+  })
 }
 
 # API Gateway for validation endpoints

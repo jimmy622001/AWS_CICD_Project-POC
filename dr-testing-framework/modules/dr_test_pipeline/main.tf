@@ -1,3 +1,14 @@
+# Required providers for this module
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+      configuration_aliases = [ aws.primary, aws.dr ]
+    }
+  }
+}
+
 variable "project_name" {
   description = "Name of the project being tested"
   type        = string
@@ -140,7 +151,40 @@ resource "aws_s3_bucket" "dr_artifacts" {
   acl    = "private"
 }
 
-# IAM role and policies would be defined here
+# IAM roles and policies
+resource "aws_iam_role" "dr_pipeline_role" {
+  name = "${var.project_name}-dr-pipeline-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "codepipeline.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
+
+resource "aws_iam_role" "dr_codebuild_role" {
+  name = "${var.project_name}-dr-codebuild-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "codebuild.amazonaws.com"
+        }
+      },
+    ]
+  })
+}
 
 resource "aws_codebuild_project" "dr_test_setup" {
   name          = "${var.project_name}-dr-test-setup"
@@ -200,11 +244,214 @@ EOF
   }
 }
 
-# Similar resource blocks would be defined for:
-# - aws_codebuild_project.dr_failover
-# - aws_codebuild_project.dr_validation
-# - aws_codebuild_project.dr_failback
-# - aws_codebuild_project.dr_report
+# Other CodeBuild projects
+resource "aws_codebuild_project" "dr_failover" {
+  name          = "${var.project_name}-dr-failover"
+  description   = "Execute failover for ${var.project_name}"
+  build_timeout = "60"
+  service_role  = aws_iam_role.dr_codebuild_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+
+    environment_variable {
+      name  = "PRIMARY_REGION"
+      value = var.primary_region
+    }
+
+    environment_variable {
+      name  = "DR_REGION"
+      value = var.dr_region
+    }
+  }
+
+  source {
+    type = "CODEPIPELINE"
+    buildspec = <<EOF
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+  pre_build:
+    commands:
+      - echo Installing dependencies...
+      - pip install boto3 awscli
+  build:
+    commands:
+      - echo Executing failover script...
+      - sh ./dr-testing-framework/scripts/failover_test.sh
+  post_build:
+    commands:
+      - echo Failover execution complete
+artifacts:
+  files:
+    - failover-results.json
+EOF
+  }
+}
+
+resource "aws_codebuild_project" "dr_validation" {
+  name          = "${var.project_name}-dr-validation"
+  description   = "Validate failover for ${var.project_name}"
+  build_timeout = "60"
+  service_role  = aws_iam_role.dr_codebuild_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+
+    environment_variable {
+      name  = "PRIMARY_REGION"
+      value = var.primary_region
+    }
+
+    environment_variable {
+      name  = "DR_REGION"
+      value = var.dr_region
+    }
+  }
+
+  source {
+    type = "CODEPIPELINE"
+    buildspec = <<EOF
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+  pre_build:
+    commands:
+      - echo Installing dependencies...
+      - pip install boto3 pytest
+  build:
+    commands:
+      - echo Validating failover...
+      - sh ./dr-testing-framework/scripts/data_validation.sh
+  post_build:
+    commands:
+      - echo Validation complete
+artifacts:
+  files:
+    - validation-results.json
+EOF
+  }
+}
+
+resource "aws_codebuild_project" "dr_failback" {
+  name          = "${var.project_name}-dr-failback"
+  description   = "Execute failback for ${var.project_name}"
+  build_timeout = "60"
+  service_role  = aws_iam_role.dr_codebuild_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+
+    environment_variable {
+      name  = "PRIMARY_REGION"
+      value = var.primary_region
+    }
+
+    environment_variable {
+      name  = "DR_REGION"
+      value = var.dr_region
+    }
+  }
+
+  source {
+    type = "CODEPIPELINE"
+    buildspec = <<EOF
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+  pre_build:
+    commands:
+      - echo Installing dependencies...
+      - pip install boto3 awscli
+  build:
+    commands:
+      - echo Executing failback...
+      - sh ./dr-testing-framework/scripts/failover_test.sh --failback
+  post_build:
+    commands:
+      - echo Failback execution complete
+artifacts:
+  files:
+    - failback-results.json
+EOF
+  }
+}
+
+resource "aws_codebuild_project" "dr_report" {
+  name          = "${var.project_name}-dr-report"
+  description   = "Generate report for DR test of ${var.project_name}"
+  build_timeout = "60"
+  service_role  = aws_iam_role.dr_codebuild_role.arn
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:3.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+
+    environment_variable {
+      name  = "PROJECT_NAME"
+      value = var.project_name
+    }
+  }
+
+  source {
+    type = "CODEPIPELINE"
+    buildspec = <<EOF
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+  pre_build:
+    commands:
+      - echo Installing dependencies...
+      - pip install boto3 markdown
+  build:
+    commands:
+      - echo Generating DR test report...
+      - python ./dr-testing-framework/scripts/generate_report.py
+  post_build:
+    commands:
+      - echo Report generation complete
+artifacts:
+  files:
+    - dr-test-report.md
+    - dr-test-report.html
+EOF
+  }
+}
 
 output "pipeline_id" {
   description = "ID of the DR test pipeline"

@@ -1,3 +1,14 @@
+# Required providers for this module
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+      configuration_aliases = [ aws.primary, aws.dr ]
+    }
+  }
+}
+
 variable "project_name" {
   description = "Name of the project being tested"
   type        = string
@@ -11,6 +22,44 @@ variable "primary_region" {
 variable "dr_region" {
   description = "Disaster Recovery AWS region"
   type        = string
+}
+
+variable "vpc_cidr_primary" {
+  description = "CIDR block for the primary VPC"
+  type        = string
+}
+
+variable "vpc_cidr_dr" {
+  description = "CIDR block for the DR VPC"
+  type        = string
+}
+
+variable "subnets_primary" {
+  description = "List of subnet CIDR blocks for the primary region"
+  type        = list(string)
+}
+
+variable "subnets_dr" {
+  description = "List of subnet CIDR blocks for the DR region"
+  type        = list(string)
+}
+
+variable "instances_primary" {
+  description = "List of instance configurations for primary region"
+  type        = list(object({
+    type  = string
+    count = number
+    size  = string
+  }))
+}
+
+variable "instances_dr" {
+  description = "List of instance configurations for DR region"
+  type        = list(object({
+    type  = string
+    count = number
+    size  = string
+  }))
 }
 
 variable "test_data" {

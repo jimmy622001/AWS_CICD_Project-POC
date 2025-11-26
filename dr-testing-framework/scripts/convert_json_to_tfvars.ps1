@@ -33,8 +33,8 @@ function ConvertTo-TfVars {
         $output += "vpc_cidr_dr = `"$($dr.vpc_cidr)`"`n"
         
         # Convert subnet arrays to HCL format
-        $primarySubnets = $primary.subnets | ForEach-Object { "`"$_`"" } | Join-String -Separator ", "
-        $drSubnets = $dr.subnets | ForEach-Object { "`"$_`"" } | Join-String -Separator ", "
+        $primarySubnets = ($primary.subnets | ForEach-Object { "`"$_`"" }) -join ", "
+        $drSubnets = ($dr.subnets | ForEach-Object { "`"$_`"" }) -join ", "
         
         $output += "subnets_primary = [$primarySubnets]`n"
         $output += "subnets_dr = [$drSubnets]`n"
@@ -58,7 +58,7 @@ function ConvertTo-TfVars {
         }
         
         # Convert services array to HCL format
-        $servicesStr = $allServices | ForEach-Object { "`"$_`"" } | Join-String -Separator ", "
+        $servicesStr = ($allServices | ForEach-Object { "`"$_`"" }) -join ", "
         $output += "failover_components = [$servicesStr]`n"
     }
 

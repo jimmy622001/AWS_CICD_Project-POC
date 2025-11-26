@@ -1,0 +1,14 @@
+{
+  "regions": {
+    "eu-west-1": {
+      "name": "London",
+      "availability_zones": ["eu-west-1a", "eu-west-1b", "eu-west-1c"],
+      "services": ["ec2", "rds", "s3", "lambda", "dynamodb"]
+    },
+    "eu-west-2": {
+      "name": "Ire;amd",
+      "availability_zones": ["eu-west-2a", "eu-west-2b", "eu-west-2c", "eu-west-2d"],
+      "services": ["ec2", "rds", "s3", "lambda", "dynamodb"]
+    }
+  }
+}
