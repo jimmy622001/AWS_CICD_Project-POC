@@ -25,7 +25,7 @@ variable "failover_components" {
 variable "test_data" {
   description = "Configuration for test data generation"
   type        = map(any)
-  default     = {
+  default = {
     size_mb = 100
     type    = "random"
     format  = "json"
@@ -64,7 +64,7 @@ variable "subnets_dr" {
 
 variable "instances_primary" {
   description = "Instance configuration for primary environment"
-  type        = list(object({
+  type = list(object({
     type  = string
     count = number
     size  = string
@@ -85,7 +85,7 @@ variable "instances_primary" {
 
 variable "instances_dr" {
   description = "Instance configuration for DR environment"
-  type        = list(object({
+  type = list(object({
     type  = string
     count = number
     size  = string

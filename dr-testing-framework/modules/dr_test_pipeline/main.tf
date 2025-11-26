@@ -2,9 +2,9 @@
 terraform {
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-      configuration_aliases = [ aws.primary, aws.dr ]
+      source                = "hashicorp/aws"
+      version               = "~> 6.0"
+      configuration_aliases = [aws.primary, aws.dr]
     }
   }
 }
@@ -60,12 +60,12 @@ resource "aws_codepipeline" "dr_test_pipeline" {
     name = "TestSetup"
 
     action {
-      name            = "PrepareTestEnv"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      version         = "1"
-      input_artifacts = ["source_output"]
+      name             = "PrepareTestEnv"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["source_output"]
       output_artifacts = ["setup_output"]
 
       configuration = {
@@ -78,12 +78,12 @@ resource "aws_codepipeline" "dr_test_pipeline" {
     name = "PerformFailover"
 
     action {
-      name            = "ExecuteFailover"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      version         = "1"
-      input_artifacts = ["setup_output"]
+      name             = "ExecuteFailover"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["setup_output"]
       output_artifacts = ["failover_output"]
 
       configuration = {
@@ -96,12 +96,12 @@ resource "aws_codepipeline" "dr_test_pipeline" {
     name = "ValidateFailover"
 
     action {
-      name            = "FailoverValidation"
-      category        = "Test"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      version         = "1"
-      input_artifacts = ["failover_output"]
+      name             = "FailoverValidation"
+      category         = "Test"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["failover_output"]
       output_artifacts = ["validation_output"]
 
       configuration = {
@@ -114,12 +114,12 @@ resource "aws_codepipeline" "dr_test_pipeline" {
     name = "PerformFailback"
 
     action {
-      name            = "ExecuteFailback"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      version         = "1"
-      input_artifacts = ["validation_output"]
+      name             = "ExecuteFailback"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      version          = "1"
+      input_artifacts  = ["validation_output"]
       output_artifacts = ["failback_output"]
 
       configuration = {
@@ -219,7 +219,7 @@ resource "aws_codebuild_project" "dr_test_setup" {
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = <<EOF
 version: 0.2
 phases:
@@ -273,7 +273,7 @@ resource "aws_codebuild_project" "dr_failover" {
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = <<EOF
 version: 0.2
 phases:
@@ -326,7 +326,7 @@ resource "aws_codebuild_project" "dr_validation" {
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = <<EOF
 version: 0.2
 phases:
@@ -379,7 +379,7 @@ resource "aws_codebuild_project" "dr_failback" {
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = <<EOF
 version: 0.2
 phases:
@@ -427,7 +427,7 @@ resource "aws_codebuild_project" "dr_report" {
   }
 
   source {
-    type = "CODEPIPELINE"
+    type      = "CODEPIPELINE"
     buildspec = <<EOF
 version: 0.2
 phases:

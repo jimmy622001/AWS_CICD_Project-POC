@@ -2,9 +2,9 @@
 terraform {
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-      configuration_aliases = [ aws.primary, aws.dr ]
+      source                = "hashicorp/aws"
+      version               = "~> 6.0"
+      configuration_aliases = [aws.primary, aws.dr]
     }
   }
 }
@@ -56,7 +56,7 @@ variable "notification_email" {
 variable "fis_experiments" {
   description = "List of AWS FIS experiments to run"
   type        = list(string)
-  default     = []  
+  default     = []
 }
 
 # Lambda function for validation checks
@@ -111,8 +111,8 @@ resource "aws_apigatewayv2_integration" "validation_lambda" {
   api_id           = aws_apigatewayv2_api.validation_api.id
   integration_type = "AWS_PROXY"
 
-  integration_uri  = aws_lambda_function.validation.invoke_arn
-  integration_method = "POST"
+  integration_uri        = aws_lambda_function.validation.invoke_arn
+  integration_method     = "POST"
   payload_format_version = "2.0"
 }
 

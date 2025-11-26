@@ -2,9 +2,9 @@
 terraform {
   required_providers {
     aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-      configuration_aliases = [ aws.primary, aws.dr ]
+      source                = "hashicorp/aws"
+      version               = "~> 6.0"
+      configuration_aliases = [aws.primary, aws.dr]
     }
   }
 }
@@ -46,7 +46,7 @@ variable "subnets_dr" {
 
 variable "instances_primary" {
   description = "List of instance configurations for primary region"
-  type        = list(object({
+  type = list(object({
     type  = string
     count = number
     size  = string
@@ -55,7 +55,7 @@ variable "instances_primary" {
 
 variable "instances_dr" {
   description = "List of instance configurations for DR region"
-  type        = list(object({
+  type = list(object({
     type  = string
     count = number
     size  = string
@@ -75,10 +75,10 @@ resource "aws_s3_bucket" "test_data" {
 }
 
 resource "aws_dynamodb_table" "test_metrics" {
-  name           = "${var.project_name}-dr-test-metrics"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "test_id"
-  range_key      = "timestamp"
+  name         = "${var.project_name}-dr-test-metrics"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "test_id"
+  range_key    = "timestamp"
 
   attribute {
     name = "test_id"

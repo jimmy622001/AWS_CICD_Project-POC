@@ -23,12 +23,12 @@ module "test_resources" {
   dr_region      = var.dr_region
   test_data      = var.test_data
 
-  vpc_cidr_primary = var.vpc_cidr_primary
-  vpc_cidr_dr     = var.vpc_cidr_dr
-  subnets_primary = var.subnets_primary
-  subnets_dr      = var.subnets_dr
+  vpc_cidr_primary  = var.vpc_cidr_primary
+  vpc_cidr_dr       = var.vpc_cidr_dr
+  subnets_primary   = var.subnets_primary
+  subnets_dr        = var.subnets_dr
   instances_primary = var.instances_primary
-  instances_dr     = var.instances_dr
+  instances_dr      = var.instances_dr
 
   providers = {
     aws.primary = aws.primary
@@ -39,15 +39,15 @@ module "test_resources" {
 module "validation" {
   source = "./modules/validation"
 
-  project_name      = var.project_name
-  validation_checks = var.validation_checks
-  primary_region    = var.primary_region
-  dr_region         = var.dr_region
-  test_timeout_minutes = var.test_timeout_minutes
+  project_name          = var.project_name
+  validation_checks     = var.validation_checks
+  primary_region        = var.primary_region
+  dr_region             = var.dr_region
+  test_timeout_minutes  = var.test_timeout_minutes
   rto_threshold_minutes = var.rto_threshold_minutes
   rpo_threshold_minutes = var.rpo_threshold_minutes
-  notification_email = var.notification_email
-  fis_experiments    = var.fis_experiments
+  notification_email    = var.notification_email
+  fis_experiments       = var.fis_experiments
 
   providers = {
     aws.primary = aws.primary
