@@ -4,7 +4,12 @@ This guide explains how to configure the DR testing framework for the AWS_CICD_P
 
 ## Configuration Overview
 
-The DR testing framework uses several configuration files to customize tests for your specific AWS environment. These configurations control:
+The DR testing framework supports two configuration methods:
+
+1. **JSON Configuration Files** - Traditional method using JSON files
+2. **Terraform Variables** - New method using Terraform variables
+
+These configurations control:
 
 1. Test environments (primary and DR)
 2. AWS regions and availability zones
@@ -12,91 +17,28 @@ The DR testing framework uses several configuration files to customize tests for
 4. Services to test
 5. Pipeline settings
 
-## Configuration Files
+## Configuration Methods
 
-### 1. Test Environments Configuration
+### 1. JSON Configuration Files (Original Method)
 
-Located at `config/test-environments.json`:
+The framework originally uses JSON configuration files located in the `config/` directory:
 
-```json
-{
-  "environments": {
-    "primary": {
-      "name": "Production",
-      "region": "us-west-2",
-      "vpc_cidr": "10.0.0.0/16",
-      "subnets": [
-        "10.0.1.0/24",
-        "10.0.2.0/24"
-      ],
-      "instances": [
-        {
-          "type": "web",
-          "count": 2,
-          "size": "t3.medium"
-        },
-        {
-          "type": "db",
-          "count": 1,
-          "size": "m5.large"
-        }
-      ]
-    },
-    "dr": {
-      "name": "DR Environment",
-      "region": "us-east-1",
-      "vpc_cidr": "10.1.0.0/16",
-      "subnets": [
-        "10.1.1.0/24",
-        "10.1.2.0/24"
-      ],
-      "instances": [
-        {
-          "type": "web",
-          "count": 2,
-          "size": "t3.medium"
-        },
-        {
-          "type": "db",
-          "count": 1,
-          "size": "m5.large"
-        }
-      ]
-    }
-  }
-}
-```
+- `config/test-environments.json` - Defines primary and DR environments
+- `config/aws-regions.json` - Defines AWS regions and available services
 
 **How to customize**:
 - Update the `region` values to match your primary and DR regions
 - Set the correct `vpc_cidr` and `subnets` for your environments
 - Update `instances` to match your application's requirements
-
-### 2. AWS Regions Configuration
-
-Located at `config/aws-regions.json`:
-
-```json
-{
-  "regions": {
-    "us-west-2": {
-      "name": "US West (Oregon)",
-      "availability_zones": ["us-west-2a", "us-west-2b", "us-west-2c"],
-      "services": ["ec2", "rds", "s3", "lambda", "dynamodb"]
-    },
-    "us-east-1": {
-      "name": "US East (N. Virginia)",
-      "availability_zones": ["us-east-1a", "us-east-1b", "us-east-1c", "us-east-1d"],
-      "services": ["ec2", "rds", "s3", "lambda", "dynamodb"]
-    }
-  }
-}
-```
-
-**How to customize**:
 - Add or remove regions based on your deployment architecture
 - Ensure all services you're using are listed under `services`
-- Verify the availability zones you're using are correct
+
+### 2. Terraform Variables (New Method)
+
+The framework now supports Terraform variables for configuration:
+
+- `variables.tf` - Defines all available configuration variables
+- `terraform.tfvars` - Sets actual values for the variables
 
 ### 3. Test Parameters Configuration
 
@@ -123,11 +65,32 @@ Located at `config/test-parameters.json`:
 - Set `notification_email` to your team's email address
 - Select which `fis_experiments` you want to run
 
-## Project-Specific Configuration
+## Variable Configuration
 
-### The `project-specific-dr-test.tf` File
+### Available Variables
 
-This file connects the DR testing framework to your AWS_CICD_Project infrastructure:
+All configuration options are available as Terraform variables. Here are the key variables:
+
+```hcl
+# Core settings
+project_name     = "aws-cicd-project"  # Project name
+primary_region   = "us-west-2"       # Primary AWS region
+dr_region        = "us-east-1"       # DR AWS region
+
+# Network configuration
+vpc_cidr_primary = "10.0.0.0/16"     # CIDR for primary VPC
+vpc_cidr_dr      = "10.1.0.0/16"     # CIDR for DR VPC
+subnets_primary  = ["10.0.1.0/24"]   # Subnets for primary
+subnets_dr       = ["10.1.1.0/24"]   # Subnets for DR
+
+# Recovery objectives
+rto_threshold_minutes = 15            # Recovery Time Objective
+rpo_threshold_minutes = 60            # Recovery Point Objective
+```
+
+See the `variables.tf` file for a complete list of available variables.
+
+### Project-Specific Configuration
 
 ```hcl
 module "dr_testing" {
@@ -138,8 +101,8 @@ module "dr_testing" {
   environment  = "production"
   
   # Regions
-  primary_region = "us-west-2"
-  dr_region      = "us-east-1"
+  primary_region = "eu-west-1"
+  dr_region      = "us-east-2"
   
   # Infrastructure details
   vpc_id_primary = "vpc-12345abcde"
@@ -147,14 +110,14 @@ module "dr_testing" {
   
   # Database configuration
   database_identifier = "prod-database"
-  database_snapshot_arn = "arn:aws:rds:us-west-2:123456789012:snapshot:prod-snapshot"
+  database_snapshot_arn = "arn:aws:rds:eu-west-2:123456789012:snapshot:prod-snapshot"
   
   # S3 configuration
   s3_bucket_primary = "my-app-data-primary"
   s3_bucket_dr      = "my-app-data-dr"
   
   # Pipeline settings
-  notification_email = "team@example.com"
+  notification_email = "dimitris_griparis@epam.com"
   schedule_expression = "rate(7 days)"
 }
 ```
@@ -168,28 +131,45 @@ module "dr_testing" {
 
 ## How to Apply Configuration Changes
 
-After modifying configuration files:
+### Using the JSON Configuration (Original Method)
 
-1. Commit your changes to the `dr-test-integration` branch:
+1. Modify the JSON files in the `config/` directory
+2. Run the conversion script to update Terraform variables:
 
-   ```bash
-   git add config/
-   git add project-specific-dr-test.tf
-   git commit -m "Update DR test configuration for AWS_CICD_Project"
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\scripts\convert_json_to_tfvars.ps1
    ```
 
-2. Apply the Terraform changes:
+3. Apply the Terraform changes:
 
    ```bash
    terraform init
    terraform apply
    ```
 
-3. Validate your configuration:
+### Using Terraform Variables Directly (New Method)
+
+1. Edit the `terraform.tfvars` file directly
+2. Run Terraform commands:
 
    ```bash
-   ./scripts/validate_config.sh
+   terraform init
+   terraform plan
+   terraform apply
    ```
+
+### Using the Automated Run Script
+
+For convenience, you can use the provided batch file:
+
+```bash
+.\run-terraform.bat
+```
+
+This script will:
+1. Convert JSON to Terraform variables
+2. Initialize Terraform
+3. Run Terraform plan
 
 ## Advanced Configuration
 
