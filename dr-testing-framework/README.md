@@ -4,6 +4,8 @@ This framework provides comprehensive Disaster Recovery (DR) testing capabilitie
 
 ## Quick Start
 
+**New to this project?** Check our [Getting Started Guide](./docs/GETTING_STARTED.md) for beginners.
+
 For detailed instructions on running DR tests, please refer to the [DR Testing Guide](./docs/DR_TESTING_GUIDE.md).
 
 ## Overview
