@@ -1,6 +1,8 @@
 # AWS Native CI/CD Project
 
-This project implements a complete CI/CD solution using AWS native services (CodeCommit, CodeBuild, CodeDeploy, and CodePipeline) replacing Jenkins for infrastructure, EKS, and application deployments.
+This project implements a complete CI/CD solution using AWS native services (CodeCommit, CodeBuild, CodeDeploy, and CodePipeline) for infrastructure, EKS, and application deployments.
+
+> **Note:** For detailed usage instructions, please refer to [USAGE.md](USAGE.md)
 
 ## Project Structure
 
@@ -88,38 +90,21 @@ AWS_CICD_Project/
    - Runs frequently (for application code changes)
    - Supports CI/CD for multiple environments
 
-## Getting Started
+## Architecture Overview
 
-### Prerequisites
+The solution implements a comprehensive CI/CD workflow using native AWS services with three distinct pipelines:
 
-- AWS CLI configured with appropriate permissions
-- Terraform ≥ 1.0.0
-- Docker (for local testing)
+1. **Infrastructure Pipeline**: Deploys VPC and networking components
+2. **EKS Pipeline**: Deploys Kubernetes cluster and configurations
+3. **Application Pipeline**: Builds and deploys application containers
 
-### Deployment Steps
-
-1. **Initialize the Project**
-   ```
-   terraform init
-   terraform apply
-   ```
-
-2. **Configure AWS CodeCommit**
-   - Set up Git credentials for AWS CodeCommit
-   - Push code to the repositories
-
-3. **Run the Pipelines**
-   - Infrastructure pipeline first
-   - EKS pipeline second
-   - Application pipeline last
-
-### Environment Promotion
-
-The project supports a typical promotion workflow:
+The environment promotion workflow follows industry best practices:
 1. Deploy to development (dev)
 2. Test and validate
 3. Promote to production (prod)
 4. Optionally deploy to disaster recovery (dr)
+
+> For installation, setup and operational procedures, please refer to [USAGE.md](USAGE.md)
 
 ## Security Features
 
@@ -139,3 +124,7 @@ The project supports a typical promotion workflow:
 - Pay-per-use model for CI/CD components
 - Resource cleanup through retention policies
 - Cost allocation tagging
+
+![Infrastructure.png](docs/Infrastructure.png)
+![CICD.png](docs/CICD.png)
+![DR Pilot Light.png](docs/DR%20Pilot%20Light.png)
