@@ -84,3 +84,51 @@ provider "helm" {
     token                  = data.aws_eks_cluster_auth.eks.token
   }
 }
+
+# Configure DR region provider
+provider "aws" {
+  alias  = "dr"
+  region = var.dr_region
+}
+
+# DR Module for Disaster Recovery
+module "dr" {
+  source = "../../environments/dr"
+
+  # Pass necessary variables to DR module
+  environment = "dr"
+  primary_region = var.region
+  dr_region = var.dr_region
+
+  providers = {
+    aws = aws.dr
+  }
+}
+
+# Route53 Failover Configuration
+module "route53_failover" {
+  source = "../../modules/route53-failover"
+
+  environment     = var.environment
+  domain_name     = var.domain_name
+  primary_endpoint = module.eks.cluster_endpoint
+  primary_zone_id = module.eks.cluster_zone_id
+  dr_endpoint     = module.dr.cluster_endpoint
+  dr_zone_id      = module.dr.cluster_zone_id
+  health_check_path = "/health"
+}
+
+# Scheduled Failover Testing
+module "scheduled_failover_test" {
+  source = "../../modules/scheduled-failover-test"
+
+  environment        = var.environment
+  primary_region     = var.region
+  dr_region          = var.dr_region
+  domain_name        = var.domain_name
+  hosted_zone_id     = module.route53_failover.hosted_zone_id
+  primary_endpoint   = module.eks.cluster_endpoint
+  dr_endpoint        = module.dr.cluster_endpoint
+  health_check_path  = "/health"
+  notification_emails = var.notification_emails
+}

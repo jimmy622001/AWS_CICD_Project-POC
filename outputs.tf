@@ -1,24 +1,21 @@
-output "codecommit_repositories" {
-  description = "Map of created CodeCommit repositories"
-  value       = module.codecommit_repos.repository_map
-}
-
-output "codebuild_projects" {
-  description = "Map of created CodeBuild projects"
-  value       = module.codebuild_projects.project_map
-}
-
-output "codedeploy_applications" {
-  description = "Map of created CodeDeploy applications"
-  value       = module.codedeploy_apps.app_map
-}
-
-output "codepipelines" {
-  description = "Map of created CodePipeline pipelines"
-  value       = module.ci_cd_pipelines.pipeline_map
-}
-
-output "artifact_bucket" {
+output "artifact_bucket_name" {
   description = "S3 bucket for CI/CD artifacts"
-  value       = aws_s3_bucket.artifacts_bucket.bucket
+  value       = aws_s3_bucket.artifacts.bucket
+}
+
+output "kms_key_arn" {
+  description = "KMS key ARN for CI/CD artifacts"
+  value       = aws_kms_key.cicd_key.arn
+}
+
+# These outputs are placeholders for the Route 53 failover module
+# You'll need to adjust these based on your actual infrastructure
+output "endpoint_dns" {
+  description = "The DNS endpoint for the application (e.g., load balancer or CloudFront)"
+  value       = var.application_endpoint != "" ? var.application_endpoint : "placeholder-endpoint.${var.aws_region}.amazonaws.com"
+}
+
+output "zone_id" {
+  description = "The hosted zone ID for the application endpoint"
+  value       = var.hosted_zone_id != "" ? var.hosted_zone_id : "Z123456789EXAMPLE"
 }

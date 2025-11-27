@@ -13,6 +13,42 @@ variable "environment" {
   }
 }
 
+variable "project" {
+  description = "Project name"
+  type        = string
+  default     = "aws-cicd"
+}
+
+variable "environments" {
+  description = "List of environments"
+  type        = list(string)
+  default     = ["dev", "prod", "dr"]
+}
+
+variable "artifact_bucket_name" {
+  description = "S3 bucket name for pipeline artifacts"
+  type        = string
+  default     = "aws-cicd-artifacts"
+}
+
+variable "kms_key_alias" {
+  description = "Alias for the KMS key used to encrypt artifacts"
+  type        = string
+  default     = "alias/aws-cicd-key"
+}
+
+variable "application_endpoint" {
+  description = "DNS endpoint for the application (e.g., load balancer or CloudFront)"
+  type        = string
+  default     = ""
+}
+
+variable "hosted_zone_id" {
+  description = "The hosted zone ID for the application endpoint"
+  type        = string
+  default     = ""
+}
+
 variable "repositories" {
   description = "Map of CodeCommit repositories to create"
   type = map(object({

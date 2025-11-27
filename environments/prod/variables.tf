@@ -72,3 +72,15 @@ variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
 }
+
+variable "dr_region" {
+  description = "AWS region for disaster recovery"
+  type        = string
+  default     = "us-west-2"  # Default DR region
+}
+
+variable "notification_emails" {
+  description = "List of email addresses to receive failover test notifications"
+  type        = list(string)
+  default     = []  # Add default email addresses if needed
+}
