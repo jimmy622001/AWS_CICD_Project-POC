@@ -1,0 +1,31 @@
+# Example terraform.tfvars file - rename to terraform.tfvars and update with your values
+
+project_name      = "my-aws-project"
+environment       = "dev"
+region            = "us-east-1"
+account_id        = "123456789012"
+vpc_id            = "vpc-0123456789abcdef0"
+notification_email = "alerts@example.com"
+
+# API endpoints to test
+api_endpoints = [
+  {
+    name = "health-check"
+    url = "https://api.example.com/health"
+    method = "GET"
+    expected_status_code = 200
+  },
+  {
+    name = "users-api"
+    url = "https://api.example.com/users"
+    method = "GET"
+    expected_status_code = 200
+  }
+]
+
+# Testing schedules
+inspector_schedule       = "rate(7 days)"
+canary_schedule          = "rate(5 minutes)"
+trusted_advisor_schedule = "rate(7 days)"
+testing_schedule         = "cron(0 0 ? * SUN *)"  # Weekly on Sunday at midnight
+xray_sampling_rate       = 0.05

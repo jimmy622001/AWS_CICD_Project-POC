@@ -135,8 +135,26 @@ resource "aws_codepipeline" "infrastructure_pipeline" {
   }
 
   stage {
+    name = "PreDeploymentValidation"
+  
+    action {
+      name             = "ValidateArchitecture"
+      category         = "Build"
+      owner            = "AWS"
+      provider         = "CodeBuild"
+      input_artifacts  = ["source_output"]
+      output_artifacts = ["validation_output"]
+      version          = "1"
+  
+      configuration = {
+        ProjectName = var.pre_deployment_validation_project_name
+      }
+    }
+  }
+  
+  stage {
     name = "Build"
-
+  
     action {
       name             = "BuildAndDeploy"
       category         = "Build"
@@ -145,7 +163,7 @@ resource "aws_codepipeline" "infrastructure_pipeline" {
       input_artifacts  = ["source_output"]
       output_artifacts = ["build_output"]
       version          = "1"
-
+  
       configuration = {
         ProjectName = var.infrastructure_build_project_name
       }

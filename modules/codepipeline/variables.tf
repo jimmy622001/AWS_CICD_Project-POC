@@ -43,6 +43,11 @@ variable "app_repository_name" {
   type        = string
 }
 
+variable "pre_deployment_validation_project_name" {
+  description = "Name of the CodeBuild project for pre-deployment validation"
+  type        = string
+}
+
 variable "infrastructure_build_project_name" {
   description = "Name of the CodeBuild project for infrastructure"
   type        = string

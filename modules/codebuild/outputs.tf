@@ -1,3 +1,13 @@
+output "pre_deployment_validation_project_arn" {
+  description = "ARN of the pre-deployment validation build project"
+  value       = aws_codebuild_project.pre_deployment_validation.arn
+}
+
+output "pre_deployment_validation_project_name" {
+  description = "Name of the pre-deployment validation build project"
+  value       = aws_codebuild_project.pre_deployment_validation.name
+}
+
 output "infrastructure_build_project_arn" {
   description = "ARN of the infrastructure build project"
   value       = aws_codebuild_project.infrastructure_build.arn

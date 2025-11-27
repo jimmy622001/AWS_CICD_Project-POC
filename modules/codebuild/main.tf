@@ -295,15 +295,69 @@ resource "aws_codebuild_project" "app_build" {
   )
 }
 
+# Pre-Deployment Validation CodeBuild Project
+resource "aws_codebuild_project" "pre_deployment_validation" {
+  name          = "${var.project}-${var.environment}-pre-deployment-validation"
+  description   = "Pre-deployment validation for ${var.project} ${var.environment} infrastructure"
+  service_role  = aws_iam_role.codebuild_role.arn
+  build_timeout = "30"
+
+  artifacts {
+    type = "CODEPIPELINE"
+  }
+
+  environment {
+    compute_type                = "BUILD_GENERAL1_SMALL"
+    image                       = "aws/codebuild/amazonlinux2-x86_64-standard:4.0"
+    type                        = "LINUX_CONTAINER"
+    image_pull_credentials_type = "CODEBUILD"
+    privileged_mode             = false
+
+    environment_variable {
+      name  = "AWS_REGION"
+      value = var.region
+    }
+
+    environment_variable {
+      name  = "ENVIRONMENT"
+      value = var.environment
+    }
+
+    environment_variable {
+      name  = "ARTIFACT_BUCKET"
+      value = var.artifact_bucket_name
+    }
+  }
+
+  source {
+    type      = "CODEPIPELINE"
+    buildspec = "buildspec/pre_deployment_validation.yml"
+  }
+
+  logs_config {
+    cloudwatch_logs {
+      group_name  = "/aws/codebuild/${var.project}-${var.environment}-pre-deployment-validation"
+      stream_name = "build-log"
+    }
+  }
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.project}-${var.environment}-pre-deployment-validation"
+    }
+  )
+}
+
 # ECR Repository for application
 resource "aws_ecr_repository" "app_repository" {
   name                 = "${var.project}-${var.environment}-app"
   image_tag_mutability = "MUTABLE"
-  
+
   image_scanning_configuration {
     scan_on_push = true
   }
-  
+
   tags = merge(
     var.tags,
     {

@@ -1,0 +1,77 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - echo "Installing dependencies..."
+      - curl -fsSL https://releases.hashicorp.com/terraform/1.5.7/terraform_1.5.7_linux_amd64.zip -o terraform.zip
+      - unzip terraform.zip
+      - mv terraform /usr/local/bin/
+      - terraform --version
+      - pip install awscli checkov terraform-compliance inspec-bin cfn-lint
+      - pip install -r infrastructure-testing/requirements.txt
+      - pip install -r dr-testing-framework/requirements.txt
+
+  pre_build:
+    commands:
+      - echo "Setting up environment..."
+      - cd environments/$ENVIRONMENT
+      - terraform init -backend=false
+      - cd ../../
+
+  build:
+    commands:
+      - echo "Running pre-deployment validation..."
+      
+      # Static IaC validation using Terraform
+      - echo "Running Terraform validation..."
+      - cd environments/$ENVIRONMENT
+      - terraform validate
+      - terraform plan -out=tfplan -var-file=terraform.tfvars
+      - terraform show -json tfplan > plan.json
+      - cd ../../
+      
+      # Infrastructure testing framework - Architecture validation
+      - echo "Running architecture validation..."
+      - python infrastructure-testing/modules/architecture_validation/scripts/validate_architecture.py --plan-file environments/$ENVIRONMENT/plan.json --report-path validation_reports
+      
+      # AWS Well-Architected Framework checks
+      - echo "Running Well-Architected Framework checks..."
+      - python infrastructure-testing/modules/architecture_validation/scripts/well_architected_review.py --environment $ENVIRONMENT
+      
+      # Security scanning with Checkov
+      - echo "Running security scanning with Checkov..."
+      - checkov -d environments/$ENVIRONMENT --output json --output-file-path validation_reports/security_scan.json
+      
+      # Compliance validation
+      - echo "Running compliance validation..."
+      - terraform-compliance -p environments/$ENVIRONMENT/plan.json -f infrastructure-testing/modules/architecture_validation/compliance
+      
+      # DR validation for applicable environments
+      - |
+        if [ "$ENVIRONMENT" == "prod" ] || [ "$ENVIRONMENT" == "dr" ]; then
+          echo "Running DR architecture validation..."
+          python dr-testing-framework/scripts/validate_dr_architecture.py --environment $ENVIRONMENT
+        fi
+      
+      # Analyze validation results and decide whether to proceed
+      - echo "Analyzing validation results..."
+      - python infrastructure-testing/modules/reporting/scripts/analyze_results.py --report-dir validation_reports --fail-on-critical true
+
+  post_build:
+    commands:
+      - echo "Pre-deployment validation complete!"
+      - aws s3 cp validation_reports s3://${ARTIFACT_BUCKET}/${ENVIRONMENT}/validation_reports/ --recursive
+
+artifacts:
+  files:
+    - validation_reports/**/*
+    - environments/$ENVIRONMENT/plan.json
+  discard-paths: no
+  base-directory: .
+
+cache:
+  paths:
+    - environments/$ENVIRONMENT/.terraform/**/*
