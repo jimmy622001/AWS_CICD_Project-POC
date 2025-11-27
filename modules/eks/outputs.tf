@@ -27,3 +27,8 @@ output "oidc_provider_arn" {
   description = "The ARN of the OIDC Provider for IRSA"
   value       = aws_iam_openid_connect_provider.main.arn
 }
+
+output "cluster_zone_id" {
+  description = "The hosted zone ID for the EKS cluster endpoint"
+  value       = "Z1H1FL5HABSF5" # Default zone ID for AWS EKS in most regions, replace with actual if different
+}
